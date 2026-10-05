@@ -220,6 +220,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Exclude local data directory
-data/
+data/*
 # ...except the README.md file
 !data/README.md
