@@ -1,2 +1,2 @@
 # Project Documentation (`docs/`)
-Project proposal, architectural diagrams, and project reports.
+Project proposal, architectural diagrams, project reports, and more.
