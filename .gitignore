@@ -221,3 +221,5 @@ __marimo__/
 
 # Exclude local data directory
 data/
+# ...except the README.md file
+!data/README.md
