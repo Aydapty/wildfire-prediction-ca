@@ -223,3 +223,6 @@ __marimo__/
 data/*
 # ...except the README.md file
 !data/README.md
+
+# Exlclude macOS generated .DS_Store
+.DS_Store
