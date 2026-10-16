@@ -83,3 +83,27 @@ data/
 * **Spatiotemporal Structure & Relational Design:**
   * **Panel Layout:** The dataset is structured as a spatiotemporal panel where each unique `cell_id` spans multiple rows corresponding to every calendar day (`valid_time`) from 2022 through 2024.
   * **Constant vs. Time-Varying Data:** Static geographical attributes (such as `elevation`, `slope`, `aspect`, and base coordinates) remain identical across all rows for a given `cell_id`. Meanwhile, environmental and target attributes (`t2m`, `rh2m`, `wind_speed_10m`, `tp`, `ndvi`, `evi`, and fire ignition flags) update daily to reflect changing weather conditions, moisture stress, and historical wildfire events.
+
+---
+
+## Acquiring Raw Datasets
+
+Because raw data files and processed outputs are excluded from version control via `.gitignore`, external users or reviewers must download the source files independently and place them into the corresponding `data/raw/` subdirectories before running the processing scripts. 
+
+> **Target Scope:** Raw datasets must be clipped or filtered to cover the **California** regional bounding box for the **2022–2024** study window to successfully reproduce the training panel.
+
+### 1. USGS DEM Elevation Data (`data/raw/usgs_dem/`)
+* **Source:** [USGS EarthExplorer](https://earthexplorer.usgs.gov/) or The National Map.
+* **Instructions:** Download digital elevation model (DEM) raster files covering California and place the raw `.tif` files into `data/raw/usgs_dem/`.
+
+### 2. ECMWF ERA5 Reanalysis (`data/raw/ecmwf_era5_ranalysis/`)
+* **Source:** [Copernicus Climate Data Store (CDS)](https://cds.climate.copernicus.eu/)
+* **Instructions:** Use the `cdsapi` Python package to download daily meteorological variables for the California bounding box across 2022–2024 into `data/raw/ecmwf_era5_ranalysis/`.
+
+### 3. NASA MODIS Vegetation Indices (`data/raw/nasa_mod13q1_v061/`)
+* **Source:** [NASA Land Processes Distributed Active Archive Center (LP DAAC)](https://lpdaac.usgs.gov/) via NASA Earthdata.
+* **Instructions:** Download MOD13Q1 v061 (NDVI/EVI raster products) for California and save them in `data/raw/nasa_mod13q1_v061/`.
+
+### 4. USFS Fire Program Analysis-FOD (`data/raw/fpa_fod/`)
+* **Source:** [Kaggle (USDA Forest Service Wildfire Dataset)](https://www.kaggle.com/datasets/rtatman/188-million-us-wildfires) or the [USFS Data Library](https://www.fs.usda.gov/).
+* **Instructions:** Download the SQLite database version (`FPA_FOD_20170508.sqlite` or later revision) and place it directly inside `data/raw/fpa_fod/` (the spatial filter is handled automatically during script execution).
