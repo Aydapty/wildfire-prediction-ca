@@ -83,6 +83,14 @@ data/
 * **Spatiotemporal Structure & Relational Design:**
   * **Panel Layout:** The dataset is structured as a spatiotemporal panel where each unique `cell_id` spans multiple rows corresponding to every calendar day (`valid_time`) from 2022 through 2024.
   * **Constant vs. Time-Varying Data:** Static geographical attributes (such as `elevation`, `slope`, `aspect`, and base coordinates) remain identical across all rows for a given `cell_id`. Meanwhile, environmental and target attributes (`t2m`, `rh2m`, `wind_speed_10m`, `tp`, `ndvi`, `evi`, and fire ignition flags) update daily to reflect changing weather conditions, moisture stress, and historical wildfire events.
+* **Key Columns & Feature Schema:**
+  * `cell_id`: Unique numeric identifier for each 5km grid cell.
+  * `valid_time`: Observation date (`YYYY-MM-DD`).
+  * `latitude`, `longitude`: Grid cell center coordinates.
+  * `elevation`, `slope`, `aspect`: Static terrain features (from USGS DEM).
+  * `t2m`, `rh2m`, `wind_speed_10m`, `tp`: Daily meteorological features (from ERA5).
+  * `ndvi`, `evi`: Daily vegetation & fuel moisture indices (from MODIS).
+  * `fire_occurred`: Target variable — binary indicator (`1` if at least one wildfire ignition occurred in that 5km cell on that day, `0` otherwise; derived from USFS FPA-FOD records aggregated via `.max()`).
 
 ---
 

@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
+from datetime import datetime
 
 # Add project root to path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,8 +14,13 @@ if PROJECT_ROOT not in sys.path:
 
 from src.grid_builder import SpatialGrid
 
+def log(msg):
+    """Helper function to print messages with a precise timestamp."""
+    timestamp = datetime.now().strftime("[%H:%M:%S]")
+    print(f"{timestamp} {msg}")
+
 def main():
-    print("Loading master spatial grid anchor...")
+    log("Loading master spatial grid anchor...")
     master_grid_path = os.path.join(PROJECT_ROOT, "data", "processed", "master_grid_5km.csv")
     grid = SpatialGrid(master_grid_path)
     modis_dir = Path("data/raw")
@@ -25,24 +31,21 @@ def main():
         raise FileNotFoundError("No MODIS NetCDF file found in data/raw/")
 
     modis_path = modis_files[0]
-    print(f"Opening MODIS dataset lazily: {modis_path.name}")
+    log(f"Opening MODIS dataset lazily: {modis_path.name}")
 
     ds = xr.open_dataset(modis_path)
-    print("Dataset variables available:", list(ds.variables))
+    log("Dataset variables available:", list(ds.variables))
 
     # Extract unique years and filter strictly for 2022-2024
     time_vals = ds['time'].values
     all_years = sorted(list(set(pd.to_datetime([str(t) for t in time_vals]).year)))
     years = [y for y in all_years if 2022 <= y <= 2024]
-    print(f"Detected target years to process: {years}")
+    log(f"Detected target years to process: {years}")
 
-    output_path = Path("data/processed/modis_daily_features_5km.csv")
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    first_chunk = True
+    all_processed_frames = []
 
     for year in years:
-        print(f"\n--- Processing Year {year} ---")
+        log(f"\n--- Processing Year {year} ---")
         ds_year = ds.sel(time=str(year))
 
         lats = ds_year['lat'].values
@@ -50,7 +53,7 @@ def main():
 
         for i in range(0, len(lats), chunk_size):
             lat_slice = lats[i:i + chunk_size]
-            print(f"  -> Processing latitude band {i}/{len(lats)}...")
+            log(f"  -> Processing latitude band {i}/{len(lats)}...")
 
             ds_band = ds_year.sel(lat=lat_slice)
 
@@ -88,27 +91,31 @@ def main():
             if df_grouped.empty:
                 continue
 
-            # Perform daily temporal forward-fill expansion per cell
-            df_grouped = df_grouped.sort_values(['cell_id', 'valid_time'])
-            
-            expanded_frames = []
-            for cell_id, group in df_grouped.groupby('cell_id'):
-                group = group.set_index('valid_time').resample('1D').ffill().reset_index()
-                group['cell_id'] = cell_id
-                expanded_frames.append(group)
-                
-            df_band_daily = pd.concat(expanded_frames, ignore_index=True)
+            if not df_grouped.empty:
+                all_processed_frames.append(df_grouped)
 
-            # Append incrementally to CSV
-            mode = 'w' if first_chunk else 'a'
-            header = first_chunk
-            df_band_daily.to_csv(output_path, mode=mode, header=header, index=False)
+        log(f"Finished year {year}. Memory and swap fully preserved.")
 
-            first_chunk = False
+    log("\nConsolidating and deduplicating global MODIS records...")
+    master_modis = pd.concat(all_processed_frames, ignore_index=True)
+    master_modis = master_modis.groupby(['cell_id', 'valid_time'])[['ndvi', 'evi']].mean().reset_index()
 
-        print(f"Finished year {year}. Memory and swap fully preserved.")
+    log("Running daily forward-fill expansion...")
+    master_modis = master_modis.sort_values(['cell_id', 'valid_time'])
+    
+    expanded_frames = []
+    for cell_id, group in master_modis.groupby('cell_id'):
+        group = group.set_index('valid_time').resample('1D').ffill().reset_index()
+        group['cell_id'] = cell_id
+        expanded_frames.append(group)
+        
+    final_modis_df = pd.concat(expanded_frames, ignore_index=True)
 
-    print(f"\nSuccessfully processed and saved daily MODIS features to: {output_path}")
+    output_path = Path("data/processed/modis_daily_features_5km.csv")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    final_modis_df.to_csv(output_path, index=False)
+
+    log(f"\nSuccessfully processed and saved daily MODIS features to: {output_path}")
 
 if __name__ == "__main__":
     main()

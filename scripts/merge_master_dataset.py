@@ -37,14 +37,23 @@ def main():
 
     log("Loading era5...")
     era5 = pd.read_csv(processed_dir/"era5_daily_features_5km.csv")
+    # Drop native ERA5 coordinates since cell_id already maps to master_grid
+    era5 = era5.drop(columns=['latitude', 'longitude'], errors='ignore')
     era5 = downcast_dtypes(era5)
 
     log("Loading modis...")
     modis = pd.read_csv(processed_dir/"modis_daily_features_5km.csv")
+    modis = modis.drop(columns=['latitude', 'longitude'], errors='ignore')
     modis = downcast_dtypes(modis)
 
     log("Loading fpa_fod...")
     fpa_fod = pd.read_csv(processed_dir/"fpa_fod_mapped_5km.csv")
+    # Drop raw point-level coordinates since cell_id maps to master_grid centroids
+    fpa_fod = fpa_fod.drop(columns=['LATITUDE', 'LONGITUDE'], errors='ignore')
+    # Ensure fpa_fod is strictly unique per cell and day to prevent row multiplication
+    if 'fire_occurred' not in fpa_fod.columns:
+        fpa_fod['fire_occurred'] = 1
+    fpa_fod = fpa_fod.groupby(['cell_id', 'valid_time'], as_index=False)['fire_occurred'].max()
     fpa_fod = downcast_dtypes(fpa_fod)
 
     # Ensure data formats match for clean merging
@@ -79,6 +88,16 @@ def main():
     log("Cleaning target labels (filling missing ignitions flags with 0 if appropriate)...")
     if 'fire_occurred' in df_merged.columns:
         df_merged['fire_occurred'] = df_merged['fire_occurred'].fillna(0)
+
+    # Clean up duplicate coordinate columns if they were created during merges
+    log("Cleaning up duplicate coordinate columns...")
+    if 'latitude_y' in df_merged.columns and 'latitude_x' in df_merged.columns:
+        df_merged = df_merged.rename(columns={'latitude_y': 'latitude'})
+        df_merged = df_merged.drop(columns=['latitude_x'])
+        
+    if 'longitude_y' in df_merged.columns and 'longitude_x' in df_merged.columns:
+        df_merged = df_merged.rename(columns={'longitude_y': 'longitude'})
+        df_merged = df_merged.drop(columns=['longitude_x'])
 
     # Sort chronologically and spatially
     log("Sorting df_merged chronologically and spatially...")
