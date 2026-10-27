@@ -10,6 +10,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
 from src.grid_builder import SpatialGrid
+from src.utils import log
 
 # File paths
 sqlite_path = os.path.join(PROJECT_ROOT, "data", "raw", "fpa_fod", "FPA_FOD_20260615.sqlite")
@@ -18,14 +19,14 @@ processed_dir = os.path.join(PROJECT_ROOT, "data", "processed")
 output_path = os.path.join(processed_dir, "fpa_fod_mapped_5km.csv")
 
 def main():
-    print("Loading master spatial grid anchor...")
+    log("Loading master spatial grid anchor...")
     grid = SpatialGrid(master_grid_path)
 
-    print(f"Connecting to SQLite database: {sqlite_path}")
+    log(f"Connecting to SQLite database: {sqlite_path}")
     conn = sqlite3.connect(sqlite_path)
 
     # Query only California records to optimize memory and processing
-    print("Querying California wildfire records form SQLite...")
+    log("Querying California wildfire records form SQLite...")
     query = """
     SELECT FPA_ID, FIRE_YEAR, DISCOVERY_DATE, DISCOVERY_DOY, 
     LATITUDE, LONGITUDE, FIRE_SIZE, FIRE_SIZE_CLASS, 
@@ -37,9 +38,9 @@ def main():
     df_fires = pd.read_sql_query(query, conn)
     conn.close()
 
-    print(f"Loaded {len(df_fires)} California fire records.")
+    log(f"Loaded {len(df_fires)} California fire records.")
 
-    print("Mapping fire coordinates to nearest 5km grid cells...")
+    log("Mapping fire coordinates to nearest 5km grid cells...")
     df_fires_mapped = grid.assign_nearest_cell(
         df=df_fires,
         lon_col="LONGITUDE",
@@ -61,7 +62,7 @@ def main():
     # Save processed output
     os.makedirs(processed_dir, exist_ok=True)
     df_fires_mapped.to_csv(output_path, index=False)
-    print(f"Successfully mapped and saved fire records to: {output_path}")
+    log(f"Successfully mapped and saved fire records to: {output_path}")
 
 if __name__ == "__main__":
     main()

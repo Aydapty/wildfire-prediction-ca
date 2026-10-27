@@ -13,11 +13,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
 from src.grid_builder import SpatialGrid
-
-def log(msg):
-    """Helper function to print messages with a precise timestamp."""
-    timestamp = datetime.now().strftime("[%H:%M:%S]")
-    print(f"{timestamp} {msg}")
+from src.utils import log
 
 def main():
     log("Loading master spatial grid anchor...")

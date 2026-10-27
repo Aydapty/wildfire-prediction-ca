@@ -40,7 +40,7 @@ data/
 ### 2. `era5_daily_features_5km.csv` (Meteorological Data)
 * **Purpose:** Captures weather-driven risk factors (temperature, humidity, wind, precipitation) influencing daily fire weather.
 * **Columns:**
-  * `latitude`, `longitude`: Spatial coordinates matching the ERA5 sample point.
+  * `latitude`, `longitude`: Spatial coordinates interpolated directly from the 5km master grid via `xarray`.
   * `valid_time`: Daily observation date (`YYYY-MM-DD`).
   * `number`: Ensemble member identifier (0 for deterministic reanalysis).
   * `t2m`: 2-meter air temperature (Kelvin/Celsius); higher temperatures accelerate fuel drying and ignitability.

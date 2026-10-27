@@ -11,10 +11,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
-def log(msg):
-    """Helper function to print messages with a precise timestamp."""
-    timestamp = datetime.now().strftime("[%H:%M:%S]")
-    print(f"{timestamp} {msg}")
+from src.utils import log
 
 def downcast_dtypes(df):
     """Optimize memory by downcasting float64/int64 to smaller types."""
@@ -39,6 +36,11 @@ def main():
     era5 = pd.read_csv(processed_dir/"era5_daily_features_5km.csv")
     # Drop native ERA5 coordinates since cell_id already maps to master_grid
     era5 = era5.drop(columns=['latitude', 'longitude'], errors='ignore')
+
+    # Safety net to guarantee zero duplicate keys from ERA5
+    log("Employing ERA 5 groupby safety net...")
+    era5 = era5.groupby(['cell_id', 'valid_time'], as_index=False).mean(numeric_only=True)
+
     era5 = downcast_dtypes(era5)
 
     log("Loading modis...")

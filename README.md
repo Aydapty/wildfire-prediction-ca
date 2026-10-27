@@ -26,7 +26,7 @@ print(df.info())
 
 ## Pipeline Reproduction
 
-To regenerate the processed features and master dataset from scratch, run the scripts in the following order:
+To regenerate the processed features and master dataset from scratch, run the scripts in the following order (make sure to download raw data first with steps mentioned in [`data/README.md`](data/README.md)):
 
 ```bash
 # 1. Build spatial grid and extract DEM baseline

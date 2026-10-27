@@ -1,4 +1,5 @@
 import os
+import sys
 import urllib.request
 import numpy as np
 import pandas as pd
@@ -7,6 +8,10 @@ import rasterio
 # Resolve project root dynamically
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
+
+from src.utils import log
 
 output_dir = os.path.join(PROJECT_ROOT, "data", "raw", "usgs_dem")
 os.makedirs(output_dir, exist_ok=True)
