@@ -226,3 +226,11 @@ data/*
 
 # Exlclude macOS generated .DS_Store
 .DS_Store
+
+# Generated models and prediction outputs
+models/*.joblib
+outputs/*.csv
+outputs/*.parquet
+
+# DuckDB temporary files
+**/tmp/duckdb_temp_*
