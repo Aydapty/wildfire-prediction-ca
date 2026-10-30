@@ -232,8 +232,9 @@ models/*.joblib
 outputs/*.csv
 outputs/*.parquet
 
-# Keep Random Forest threshold analysis for evaluation
+# Keep Random Forest threshold analysis and feature importance for evaluation
 !outputs/rf_threshold_analysis.csv
+!outputs/rf_feature_importance.csv
 
 # DuckDB temporary files
 **/tmp/duckdb_temp_*
