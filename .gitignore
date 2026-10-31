@@ -238,3 +238,10 @@ outputs/*.parquet
 
 # DuckDB temporary files
 **/tmp/duckdb_temp_*
+
+# Shared prediction archives
+outputs/*.zip
+
+# Keep XGB threshold analysis and feature importance for evaluation
+!outputs/xgb_feature_importance.csv
+!outputs/xgb_threshold_analysis.csv
