@@ -1,0 +1,17 @@
+{
+    "model": "rf",
+    "dataset": "2024 Test",
+    "threshold": 0.18186991635686,
+    "observations": 27731454,
+    "fire_observations": 3843,
+    "pr_auc": 0.44578167371997773,
+    "roc_auc": 0.9909640806110044,
+    "precision": 0.41892162758067747,
+    "recall": 0.5438459536820193,
+    "f1": 0.4732789855072464,
+    "true_negatives": 27724712,
+    "false_positives": 2899,
+    "false_negatives": 1753,
+    "true_positives": 2090,
+    "baseline_pr_auc": 0.00013857910227137749
+}

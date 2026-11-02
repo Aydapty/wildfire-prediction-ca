@@ -245,3 +245,6 @@ outputs/*.zip
 # Keep XGB threshold analysis and feature importance for evaluation
 !outputs/xgb_feature_importance.csv
 !outputs/xgb_threshold_analysis.csv
+
+# keeping 2024 model testing comparison table
+!outputs/model_comparison_2024.csv
