@@ -248,3 +248,6 @@ outputs/*.zip
 
 # keeping 2024 model testing comparison table
 !outputs/model_comparison_2024.csv
+
+!outputs/rf_ablation_2023_comparison.csv
+!outputs/rf_ablation_2024_comparison.csv
