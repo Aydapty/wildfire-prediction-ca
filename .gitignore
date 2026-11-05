@@ -232,5 +232,22 @@ models/*.joblib
 outputs/*.csv
 outputs/*.parquet
 
+# Keep Random Forest threshold analysis and feature importance for evaluation
+!outputs/rf_threshold_analysis.csv
+!outputs/rf_feature_importance.csv
+
 # DuckDB temporary files
 **/tmp/duckdb_temp_*
+
+# Shared prediction archives
+outputs/*.zip
+
+# Keep XGB threshold analysis and feature importance for evaluation
+!outputs/xgb_feature_importance.csv
+!outputs/xgb_threshold_analysis.csv
+
+# keeping 2024 model testing comparison table
+!outputs/model_comparison_2024.csv
+
+!outputs/rf_ablation_2023_comparison.csv
+!outputs/rf_ablation_2024_comparison.csv

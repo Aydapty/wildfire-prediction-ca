@@ -1,0 +1,17 @@
+{
+    "model": "logreg",
+    "dataset": "2024 Test",
+    "threshold": 0.002,
+    "observations": 27731454,
+    "fire_observations": 3843,
+    "pr_auc": 0.011954913151841867,
+    "roc_auc": 0.9657144209877235,
+    "precision": 0.011182782051340165,
+    "recall": 0.6419463960447567,
+    "f1": 0.021982624192470483,
+    "true_negatives": 27509471,
+    "false_positives": 218140,
+    "false_negatives": 1376,
+    "true_positives": 2467,
+    "baseline_pr_auc": 0.00013857910227137749
+}

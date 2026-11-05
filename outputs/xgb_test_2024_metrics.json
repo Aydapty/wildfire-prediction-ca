@@ -1,0 +1,17 @@
+{
+    "model": "xgb",
+    "dataset": "2024 Test",
+    "threshold": 0.69,
+    "observations": 27731454,
+    "fire_observations": 3843,
+    "pr_auc": 0.27044187408503334,
+    "roc_auc": 0.945846715194588,
+    "precision": 0.33291983253217555,
+    "recall": 0.5586781160551653,
+    "f1": 0.4172172561212592,
+    "true_negatives": 27723309,
+    "false_positives": 4302,
+    "false_negatives": 1696,
+    "true_positives": 2147,
+    "baseline_pr_auc": 0.00013857910227137749
+}
