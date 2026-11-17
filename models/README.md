@@ -10,30 +10,39 @@ This directory stores serialized PyTorch deep learning weights and model checkpo
 
 | Checkpoint File | Architecture | Training Partition | Seed Configuration | Format | Peak 2023 Val PR-AUC | Final 2023 Val ROC-AUC | Description |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| `cnn_baseline_run3_50epochs.pt` | `WildfireCNN` | 2022 ($N = 557,616$) | `seed=42` | PyTorch `state_dict` | **0.9232** | **0.9986** | **Production baseline:** 50-epoch run with AdamW, ReduceLROnPlateau scheduler, and full 2024 holdout test evaluation. |
 | `cnn_baseline_run2_seeded.pt` | `WildfireCNN` | 2022 ($N = 557,616$) | `seed=42` | PyTorch `state_dict` | **0.9214** | **0.9988** | **Canonical baseline:** Fully reproducible run with locked random seeds, dynamic LR decay, and validation loss tracking. |
 | `cnn_baseline_run1_unseeded.pt` | `WildfireCNN` | 2022 ($N = 557,616$) | *Unseeded* (System Default) | PyTorch `state_dict` | **0.9317** | **0.9989** | **Proof-of-concept:** Initial exploration run verifying pipeline convergence across 4D spatial tensors. |
 
 ---
 
-## Architecture Specification (`WildfireCNN`)
+## Architecture Specifications (`src/models.py`)
 
-Both checkpoints contain the learned weights for the modular 2D Convolutional Neural Network defined in `src/models.py`:
+Checkpoints correspond to one of the modular architectures defined in `src/models.py`:
 
 * **Input Patch Shape:** `(B, 9, 7, 7)` representing a $35\text{ km} \times 35\text{ km}$ spatial bounding patch sampled across 9 standardized physical channels:
-  * 4 Weather: 2m Temperature (`t2m`), 2m Relative Humidity (`rh2m`), 10m Wind Speed (`wind_speed_10m`), Total Precipitation (`tp`)
-  * 2 Vegetation: `ndvi`, `evi`
-  * 3 Topography: `elevation`, `slope`, `aspect`
-* **Network Layers:**
-  1. `Conv2D(9, 32, kernel_size=3)` $\to$ `BatchNorm2D(32)` $\to$ `ReLU()`
-  2. `Conv2D(32, 64, kernel_size=3)` $\to$ `BatchNorm2D(64)` $\to$ `ReLU()`
-  3. `AdaptiveAvgPool2D((1, 1))` $\to$ `Flatten()`
-  4. `Linear(64, 32)` $\to$ `ReLU()` $\to$ `Dropout(p=0.3)` $\to$ `Linear(32, 1)`
+  - 4 Weather: 2m Temperature (`t2m`), 2m Relative Humidity (`rh2m`), 10m Wind Speed (`wind_speed_10m`), Total Precipitation (`tp`)
+  - 2 Vegetation: `ndvi`, `evi`
+  - 3 Topography: `elevation`, `slope`, `aspect`
+
+### 1. `WildfireCNN` (Iteration 0 / Baseline)
+1. `Conv2D(9, 32, kernel_size=3)` $\to$ `BatchNorm2D(32)` $\to$ `ReLU()`
+2. `Conv2D(32, 64, kernel_size=3)` $\to$ `BatchNorm2D(64)` $\to$ `ReLU()`
+3. `AdaptiveAvgPool2D((1, 1))` $\to$ `Flatten()`
+4. `Linear(64, 32)` $\to$ `ReLU()` $\to$ `Dropout(p=0.3)` $\to$ `Linear(32, 1)`
+
+### 2. `WildfireCNN_iteration1` (Iteration 1)
+1. `Conv2D(9, 32, kernel_size=3, padding=1)` $\to$ `BatchNorm2D(32)` $\to$ `GELU()` (preserves $7 \times 7$)
+2. `Conv2D(32, 64, kernel_size=3, padding=1)` $\to$ `BatchNorm2D(64)` $\to$ `GELU()` (preserves $7 \times 7$)
+3. `Conv2D(64, 64, kernel_size=3, padding=1)` $\to$ `BatchNorm2D(64)` $\to$ `GELU()` with residual skip (`+ residual`)
+4. **Dual-Stream Spatial Fusion Head:** Extracts unblurred center target pixel features at `(3, 3)` (`64` dim) and global neighborhood context via `AdaptiveAvgPool2D((1, 1))` (`64` dim), concatenating into a `128`-dim vector.
+5. `Linear(128, 64)` $\to$ `GELU()` $\to$ `Dropout(p=0.3)` $\to$ `Linear(64, 32)` $\to$ `GELU()` $\to$ `Dropout(p=0.15)` $\to$ `Linear(32, 1)`
 
 ---
 
 ## Checkpoint Loading & Inference Snippet
 
-To load either checkpoint for validation diagnostics, feature map visualization, or inference on the 2024 holdout test set (`data/processed/tensors/X_test.npy`):
+To load any checkpoint for validation diagnostics, feature map visualization, or inference on the 2024 holdout test set (`data/processed/tensors/X_test.npy`):
 
 ```python
 import torch
@@ -52,7 +61,7 @@ else:
 model = WildfireCNN().to(device)
 
 # 2. Select checkpoint path
-checkpoint_path = Path("../models/cnn_baseline_run2_seeded.pt")
+checkpoint_path = Path("../models/cnn_baseline_run3_50epochs.pt")
 
 # 3. Load state dictionary
 state_dict = torch.load(checkpoint_path, map_location=device, weights_only=True)
@@ -64,13 +73,14 @@ model.eval()
 print(f"Successfully loaded {checkpoint_path.name} onto device: {device}")
 ```
 
----
-
 ## Associated Diagnostic Artifacts
 
 Numerical loss logs, PR/ROC curves, and validation summary files for these checkpoints are located in `outputs/`:
-
-* `outputs/cnn_baseline_run2_seeded_validation_metrics.json`
-* `outputs/cnn_baseline_run2_seeded_diagnostics.png`
-* `outputs/cnn_baseline_run1_unseeded_validation_metrics.json`
-* `outputs/cnn_baseline_run1_unseeded_diagnostics.png`
+* outputs/cnn_baseline_run3_50epochs_validation_metrics.json
+* outputs/cnn_baseline_run3_50epochs_diagnostics.png
+* outputs/cnn_baseline_run3_50epochs_test_2024_metrics.json
+* outputs/cnn_baseline_run3_50epochs_test_2024_pr_curve.png
+* outputs/cnn_baseline_run2_seeded_validation_metrics.json
+* outputs/cnn_baseline_run2_seeded_diagnostics.png
+* outputs/cnn_baseline_run1_unseeded_validation_metrics.json
+* outputs/cnn_baseline_run1_unseeded_diagnostics.png
