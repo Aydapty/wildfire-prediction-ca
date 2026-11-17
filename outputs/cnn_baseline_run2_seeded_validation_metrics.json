@@ -1,5 +1,5 @@
 {
-    "model": "WildfireCNN_baseline_run2_seeded",
+    "model": "WildfireCNN",
     "run": "run2_seeded",
     "seed": 42,
     "epochs": 10,

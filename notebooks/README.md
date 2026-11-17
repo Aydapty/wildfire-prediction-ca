@@ -10,7 +10,8 @@ The experiments span classical tabular machine learning models (Logistic Regress
 
 | Notebook | Focus Area | Data Inputs | Primary Outputs & Artifacts | Validation PR-AUC (2023) | Test PR-AUC (2024) |
 | :--- | :--- | :--- | :--- | :---: | :---: |
-| `cnn_baseline.ipynb` | Deep Learning Baseline | `data/processed/tensors/` (`X_train.npy`, `X_val.npy`) | `models/cnn_baseline_run2_seeded.pt`<br>`outputs/cnn_baseline_run2_seeded_validation_metrics.json`<br>`outputs/cnn_baseline_run2_seeded_diagnostics.png` | **0.9214** (Seed 42)<br>*0.9317 (Run 1)* | *Pending* |
+| `cnn_train_val.ipynb` | Deep Learning Train & Val | `data/processed/tensors/` (`X_train.npy`, `X_val.npy`) | `models/cnn_baseline_run3_50epochs.pt`<br>`outputs/cnn_baseline_run3_50epochs_validation_metrics.json`<br>`outputs/cnn_baseline_run3_50epochs_diagnostics.png` | **0.9232** *(5% neg)*<br>**0.4601** *(20x adj.)* | *Evaluated in Test NB* |
+| `cnn_2024_test.ipynb` | Deep Learning 2024 Holdout Test | `data/processed/tensors/` (`X_val.npy`, `X_test.npy`)<br>`models/cnn_baseline_run3_50epochs.pt` | `outputs/cnn_baseline_run3_50epochs_test_2024_metrics.json`<br>`outputs/cnn_baseline_run3_50epochs_test_2024_pr_curve.png` | — | **0.9148** *(5% neg)*<br>**0.4502** *(20x adj.)* |
 | `model_experiments_logreg.ipynb` | Linear Tabular Baseline | `data/processed/master_training_dataset.parquet` | `models/logreg_provisional.joblib`<br>`outputs/logreg_validation_predictions.parquet`<br>`outputs/logreg_validation_predictions.csv` | **0.0105** | *Evaluated in Test NB* |
 | `model_experiments_random_forest.ipynb` | Non-Linear Ensemble Baseline | `data/processed/master_training_dataset.parquet` | `models/random_forest_provisional.joblib`<br>`outputs/rf_validation_predictions.parquet`<br>`outputs/rf_validation_metrics.json`<br>`outputs/rf_feature_importance.csv`<br>`outputs/rf_threshold_analysis.csv` | **0.4493** | *Evaluated in Test NB* |
 | `model_experiments_xgboost.ipynb` | Gradient Boosting Baseline | `data/processed/master_training_dataset.parquet` | `models/xgboost_provisional.joblib`<br>`outputs/xgb_validation_predictions.parquet`<br>`outputs/xgb_validation_metrics.json`<br>`outputs/xgb_feature_importance.csv`<br>`outputs/xgb_threshold_analysis.csv` | **0.2673** | *Evaluated in Test NB* |
@@ -21,7 +22,14 @@ The experiments span classical tabular machine learning models (Logistic Regress
 
 ## Detailed Notebook Descriptions
 
-### 1. `cnn_baseline.ipynb` — Spatial 2D-CNN Baseline
+### 1. `cnn_train_val.ipynb` — Spatial 2D-CNN Training and Validation Notebook
+
+* **NOTE:** This notebook will be modified and run training/validation on all CNN models that the team creates. It will output the best model run into `/models`, model performance for each run into `/outputs`, and will use the models from `src/models.py`.
+
+* **NOTE:** There will be multiple models inside `src/models.py`, with WildfireCNN() being the baseline/original model.
+  * This model will be considered `iteration0`, with any following updated models that build off the original/baseline model being labeled `iteration1` and so on.
+  * `run{number}` will be reset at each new iteration.
+
 * **Goal:** Model daily wildfire ignition risk by utilizing 2D spatial context around target cells at day $t-1$ to predict ignitions at day $t$.
 * **Input Schema:** Multi-modal 4D NumPy arrays of shape `(N, 9, 7, 7)` representing a $35\text{ km} \times 35\text{ km}$ spatial grid across 9 standardized environmental channels:
   * *Weather (4):* `t2m`, `rh2m`, `wind_speed_10m`, `tp`
@@ -30,23 +38,34 @@ The experiments span classical tabular machine learning models (Logistic Regress
 * **Data Splits & Sampling:**
   * **2022 Training:** 557,616 samples (100% fire ignitions, deterministic 2% background negative sample).
   * **2023 Validation:** 1,388,899 samples (100% fire ignitions, deterministic 5% background negative sample).
-* **Architecture (`WildfireCNN` in `src/models.py`):**
-  * `Conv2D(9 -> 32, 3x3)` $\to$ `BatchNorm2D` $\to$ `ReLU`
-  * `Conv2D(32 -> 64, 3x3)` $\to$ `BatchNorm2D` $\to$ `ReLU`
-  * `AdaptiveAvgPool2D((1, 1))` $\to$ `Flatten`
-  * `Linear(64 -> 32)` $\to$ `ReLU` $\to$ `Dropout(p=0.3)` $\to$ `Linear(32 -> 1)` (raw logits)
-* **Optimization & Training Strategy:**
+* **Architectures:** 
+  * **Baseline (`WildfireCNN` in `src/models.py`):**
+    * `Conv2D(9 -> 32, 3x3)` $\to$ `BatchNorm2D` $\to$ `ReLU`
+    * `Conv2D(32 -> 64, 3x3)` $\to$ `BatchNorm2D` $\to$ `ReLU`
+    * `AdaptiveAvgPool2D((1, 1))` $\to$ `Flatten`
+    * `Linear(64 -> 32)` $\to$ `ReLU` $\to$ `Dropout(p=0.3)` $\to$ `Linear(32 -> 1)` (raw logits)
+* **Baseline Optimization & Training Strategy:**
   * **Loss:** `nn.BCEWithLogitsLoss(pos_weight=50.0)` to handle extreme class imbalance.
   * **Optimizer & Schedule:** `AdamW(lr=1e-3, weight_decay=1e-4)` with `ReduceLROnPlateau(mode='max', factor=0.5, patience=1)` stepping on Validation PR-AUC.
   * **Hardware Pipeline:** Automatic device fallback (`CUDA` $\to$ `MPS` $\to$ `CPU`).
-* **Experimental Benchmarks:**
-  * **Run 1 (Unseeded):** Peak Validation PR-AUC = `0.9317`, ROC-AUC = `0.9989`.
-  * **Run 2 (Seeded - `set_seed(42)`):** Peak Validation PR-AUC = `0.9214`, ROC-AUC = `0.9988`, Final Validation Loss = `0.0232`.
-  * **Artifacts:** Checkpoint saved to `models/cnn_baseline_run2_seeded.pt`, diagnostics saved to `outputs/cnn_baseline_run2_seeded_diagnostics.png`, and metrics logged to `outputs/cnn_baseline_run2_seeded_validation_metrics.json`.
-
+* **Baseline Experimental Benchmarks:**
+  * **Run 1 (Unseeded - 10 epochs):** Peak Validation PR-AUC = `0.9317`, ROC-AUC = `0.9989`.
+    * **Artifacts:** Checkpoint saved to `models/cnn_baseline_run1_unseeded.pt`, diagnostics saved to `outputs/cnn_baseline_run1_unseeded_diagnostics.png`, and metrics logged to `outputs/cnn_baseline_run1_unseeded_validation_metrics.json`.
+  * **Run 2 (Seeded - `set_seed(42)`, 10 epochs):** Peak Validation PR-AUC = `0.9214`, ROC-AUC = `0.9988`, Best Validation Loss = `0.0201` (Final Loss = `0.0232`).
+    * **Artifacts:** Checkpoint saved to `models/cnn_baseline_run2_seeded.pt`, diagnostics saved to `outputs/cnn_baseline_run2_seeded_diagnostics.png`, and metrics logged to `outputs/cnn_baseline_run2_seeded_validation_metrics.json`.
+  * **Run 3 (Seeded - `set_seed(42)`, 50 epochs):** Peak Validation PR-AUC = `0.9232` (Epoch 33), Peak ROC-AUC = `0.9988` (Epoch 12), Best Validation Loss = `0.0201` (Epoch 7; Checkpoint Loss = `0.0235`, Final Loss = `0.0232`).
+    * **Artifacts:** Checkpoint saved to `models/cnn_baseline_run3_50epochs.pt`, diagnostics saved to `outputs/cnn_baseline_run3_50epochs_diagnostics.png`, and metrics logged to `outputs/cnn_baseline_run3_50epochs_validation_metrics.json`.
 ---
 
-### 2. `model_experiments_logreg.ipynb` — Tabular Logistic Regression Baseline
+### 2. `cnn_2024_test.ipynb` — Spatial 2D-CNN 2024 Independent Holdout Evaluation
+* **Goal:** Evaluate saved `WildfireCNN` checkpoints from `cnn_train_val.ipynb` against the unseen 2024 holdout test tensors (`1,392,854` samples; `3,841` confirmed fire ignitions) using decision thresholds locked strictly on 2023 validation data.
+* **Dual Evaluation Reporting:** Logs both **Raw 5%-Subsampled Tensor Metrics** and **Prevalence-Adjusted ($20\times$ Negative Sample Weight) Metrics** reconstructing the full ~27.78M-row California grid prevalence ($\approx 0.0138\%$) for direct apples-to-apples comparison with full-population tabular baselines.
+* **Baseline (`cnn_baseline_run3_50epochs.pt`) 2024 Holdout Results:**
+  * **Raw 5%-Subsampled Split:** Threshold = `0.9961` | PR-AUC = `0.9148` | ROC-AUC = `0.9986` | Precision = `0.8903` | Recall = `0.9104` | F1 = `0.9002` (`TP=3,497`, `FP=431`, `FN=344`).
+  * **Prevalence-Adjusted ($20\times$ Full-Population Equivalent):** Threshold = `0.999752` | PR-AUC = **`0.4502`** | ROC-AUC = **`0.9986`** | Precision = **`0.5162`** | Recall = **`0.6444`** | F1 = **`0.5732`** (`TP=2,475`, `Est. FP=2,320`).
+---
+
+### 3. `model_experiments_logreg.ipynb` — Tabular Logistic Regression Baseline
 * **Goal:** Establish a baseline using a linear model trained on single-pixel tabular feature vectors without spatial context.
 * **Pipeline:** DuckDB temporal join extracting day $t-1$ weather against day $t$ fire occurrences, `SimpleImputer(strategy='median')`, `StandardScaler()`, and `LogisticRegression(max_iter=1000, random_state=42)` weighted $50\times$ on the background class[cite: 3].
 * **2023 Validation Performance:**
@@ -57,7 +76,7 @@ The experiments span classical tabular machine learning models (Logistic Regress
 
 ---
 
-### 3. `model_experiments_random_forest.ipynb` — Tabular Random Forest
+### 4. `model_experiments_random_forest.ipynb` — Tabular Random Forest
 * **Goal:** Non-linear decision tree ensemble modeling on 9 environmental features.
 * **Hyperparameters:** `n_estimators=100`, `max_depth=12`, `min_samples_leaf=10`, `max_features='sqrt'`, `random_state=42`, `n_jobs=4`, with positive fire sample weight = 1.0 and negative background weight = 50.0[cite: 10].
 * **2023 Validation Performance:**
@@ -68,7 +87,7 @@ The experiments span classical tabular machine learning models (Logistic Regress
 
 ---
 
-### 4. `model_experiments_xgboost.ipynb` — Gradient Boosted Decision Trees
+### 5. `model_experiments_xgboost.ipynb` — Gradient Boosted Decision Trees
 * **Goal:** High-capacity gradient boosting on 9 tabular environmental features.
 * **Hyperparameters:** `n_estimators=300`, `max_depth=5`, `learning_rate=0.05`, `min_child_weight=5`, `subsample=1.0`, `colsample_bytree=1.0`, `tree_method='hist'`, `eval_metric='logloss'`, `random_state=42`, sample weights adjusting for the 2% negative subsampling[cite: 11].
 * **2023 Validation Performance:**
@@ -79,7 +98,7 @@ The experiments span classical tabular machine learning models (Logistic Regress
 
 ---
 
-### 5. `model_experiments_ablation.ipynb` — Feature Group Ablation Study
+### 6. `model_experiments_ablation.ipynb` — Feature Group Ablation Study
 * **Goal:** Quantify the incremental predictive value of environmental subsystems by training separate Random Forest models across feature subsets[cite: 9]:
   1. **Weather Only (4 features):** `t2m`, `rh2m`, `wind_speed_10m`, `tp`[cite: 9]
   2. **Weather + Vegetation (6 features):** Weather features + `ndvi`, `evi`[cite: 9]
@@ -91,7 +110,7 @@ The experiments span classical tabular machine learning models (Logistic Regress
 
 ---
 
-### 6. `model_experiments_2024_test.ipynb` — 2024 Independent Holdout Evaluation
+### 7. `model_experiments_2024_test.ipynb` — 2024 Independent Holdout Evaluation
 * **Goal:** Execute a batch evaluation of all trained tabular models against the completely un-sampled, full-population 2024 test partition[cite: 6].
 * **Test Population:** Streamed via DuckDB Arrow readers across **27,731,454 observations** (3,843 confirmed fire ignitions; positive prevalence $\approx 0.0138\%$)[cite: 6].
 * **Model Comparison Table (`outputs/model_comparison_2024.csv`):**

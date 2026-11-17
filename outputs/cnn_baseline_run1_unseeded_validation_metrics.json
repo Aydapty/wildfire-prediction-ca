@@ -1,5 +1,5 @@
 {
-    "model": "WildfireCNN_baseline_run1_unseeded",
+    "model": "WildfireCNN",
     "run": "run1_unseeded",
     "epochs": 10,
     "best_val_pr_auc": 0.9317342527758113,

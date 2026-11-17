@@ -8,11 +8,11 @@ Modular, reusable Python packages, dataset loaders, neural network architectures
 
 The `src/` directory is structured as an installable Python package (`src/__init__.py`) designed for clean, unified imports across both execution scripts in `scripts/` and interactive notebooks in `notebooks/`.
 
-```
+```text
 src/
-├── __init__.py           # Package namespace initialization & direct symbol exports
+├── init.py           # Package namespace initialization & direct symbol exports
 ├── dataset.py            # Memory-mapped PyTorch dataset for 4D multi-modal spatial tensors
-├── models.py             # Custom PyTorch deep learning architectures (WildfireCNN)
+├── models.py             # Custom PyTorch deep learning architectures (WildfireCNN, WildfireCNN_iteration1)
 ├── grid_builder.py       # 5 km California anchor grid indexing & KDTree spatial lookups
 └── utils.py              # Timestamped pipeline logging and diagnostic utilities
 ```
@@ -24,7 +24,7 @@ src/
 ### 1. `src/models.py` — Deep Learning Architectures
 Houses custom PyTorch neural network architectures engineered for spatial wildfire ignition modeling:
 
-* **`WildfireCNN`**: Modular 2D Convolutional Neural Network designed to process multi-channel spatial neighborhood patches:
+* **`WildfireCNN` (Iteration 0 / Baseline)**: Original modular 2D Convolutional Neural Network designed to process multi-channel spatial neighborhood patches:
   * **Input Tensor Shape:** `(B, 9, 7, 7)` representing 9 physical channels across a $35\text{ km} \times 35\text{ km}$ spatial grid ($7 \times 7$ at 5 km cell resolution).
   * **Feature Extractor:**
     * `Conv2D(in_channels=9, out_channels=32, kernel_size=3, padding=0)` $\to$ `BatchNorm2d(32)` $\to$ `ReLU()` (reduces $7 \times 7 \to 5 \times 5$)
@@ -35,6 +35,21 @@ Houses custom PyTorch neural network architectures engineered for spatial wildfi
     * `Linear(in_features=64, out_features=32)` $\to$ `ReLU()`
     * `Dropout(p=0.3)`
     * `Linear(in_features=32, out_features=1)` (outputs raw logits for numerically stable `BCEWithLogitsLoss`).
+
+* **`WildfireCNN_iteration1` (Iteration 1)**: Advanced 2D Convolutional Neural Network featuring padded convolutions to preserve spatial resolution, a residual skip connection, and a dual-stream fusion head:
+  * **Input Tensor Shape:** `(B, 9, 7, 7)` representing 9 physical channels across a $35\text{ km} \times 35\text{ km}$ spatial grid.
+  * **Feature Extractor & Residual Refinement:**
+    * `Conv2D(in_channels=9, out_channels=32, kernel_size=3, padding=1)` $\to$ `BatchNorm2d(32)` $\to$ `GELU()` (preserves $7 \times 7$)
+    * `Conv2D(in_channels=32, out_channels=64, kernel_size=3, padding=1)` $\to$ `BatchNorm2d(64)` $\to$ `GELU()` (preserves $7 \times 7$)
+    * `Conv2D(in_channels=64, out_channels=64, kernel_size=3, padding=1)` $\to$ `BatchNorm2d(64)` $\to$ `GELU()` with a residual skip connection (`+ residual`).
+  * **Dual-Stream Spatial Fusion Head:**
+    * **Center-Cell Stream:** Extracts unblurred target pixel features explicitly at coordinate `(3, 3)` (`64` features).
+    * **Neighborhood Context Stream:** Applies `AdaptiveAvgPool2d((1, 1))` to summarize regional $35\text{ km} \times 35\text{ km}$ spatial patterns (`64` features).
+    * **Concatenation:** Fuses center-cell and context features into a 128-dimensional vector (`torch.cat`).
+  * **Classifier Head:**
+    * `Linear(in_features=128, out_features=64)` $\to$ `GELU()` $\to$ `Dropout(p=0.3)`
+    * `Linear(in_features=64, out_features=32)` $\to$ `GELU()` $\to$ `Dropout(p=0.15)`
+    * `Linear(in_features=32, out_features=1)` (outputs raw logits).
 
 ### 2. `src/dataset.py` — PyTorch Dataset & Streaming
 Provides optimized tensor-streaming classes tailored for large-scale geospatial memory partitions:
@@ -53,7 +68,6 @@ Provides optimized tensor-streaming classes tailored for large-scale geospatial 
 
 ## Import Configurations
 
-### 1. In Execution Scripts (`scripts/`)
 Add the parent project directory to `sys.path` to enable clean package-style imports:
 
 ```python
@@ -67,24 +81,6 @@ if PROJECT_ROOT not in sys.path:
 
 from src.utils import log
 from src.grid_builder import SpatialGrid
-from src.models import WildfireCNN
-from src.dataset import WildfireTensorDataset
-```
-
-### 2. In Jupyter Notebooks (`notebooks/`)
-Configure autoreload and path resolution at the top of notebook environments:
-
-```python
-%load_ext autoreload
-%autoreload 2
-
-import sys
-from pathlib import Path
-
-PROJECT_ROOT = Path.cwd().resolve().parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.models import WildfireCNN
+from src.models import WildfireCNN, WildfireCNN_iteration1
 from src.dataset import WildfireTensorDataset
 ```
