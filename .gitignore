@@ -251,3 +251,6 @@ outputs/*.zip
 
 !outputs/rf_ablation_2023_comparison.csv
 !outputs/rf_ablation_2024_comparison.csv
+
+.venv-dl/
+

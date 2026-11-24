@@ -1,0 +1,45 @@
+{
+    "run_name": "resnet50_iteration0_run2_seeded",
+    "best_epoch": 3,
+    "test_year": 2024,
+    "threshold_selection_year": 2023,
+    "threshold": 0.999794065952301,
+    "test_observations": 1392854,
+    "test_positives": 3841,
+    "test_negatives": 1389013,
+    "negative_sample_fraction": 0.05,
+    "sampled_metrics": {
+        "roc_auc": 0.9959065299580648,
+        "average_precision": 0.9283245580055426,
+        "precision": 0.9540983606557377,
+        "recall": 0.5303306430617026,
+        "f1": 0.6817269076305221
+    },
+    "adjusted_metrics": {
+        "roc_auc": 0.9959065299580648,
+        "average_precision": 0.5267902824217605,
+        "precision": 0.5096322241681261,
+        "recall": 0.5303306430617026,
+        "f1": 0.5197754529216637
+    },
+    "sampled_confusion_matrix": [
+        [
+            1388915,
+            98
+        ],
+        [
+            1804,
+            2037
+        ]
+    ],
+    "adjusted_confusion_matrix": [
+        [
+            27778300.0,
+            1960.0
+        ],
+        [
+            1804.0,
+            2037.0
+        ]
+    ]
+}

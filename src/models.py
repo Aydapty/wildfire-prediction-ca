@@ -31,3 +31,35 @@ class WildfireCNN(nn.Module):
         x = self.relu2(self.bn2(self.conv2(x)))
         x = self.pool(x)
         return self.fc(x)
+
+from torchvision.models import resnet50
+
+
+class WildfireResNet50(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # Initialize ResNet-50 without pretrained weights
+        self.backbone = resnet50(weights=None)
+
+        # Adapt input for nine environmental channels
+        self.backbone.conv1 = nn.Conv2d(
+            in_channels=9,
+            out_channels=64,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=False
+        )
+
+        # Preserve spatial information in small patches
+        self.backbone.maxpool = nn.Identity()
+
+        # Binary classification head
+        self.backbone.fc = nn.Linear(
+            self.backbone.fc.in_features,
+            1
+        )
+
+    def forward(self, x):
+        return self.backbone(x)

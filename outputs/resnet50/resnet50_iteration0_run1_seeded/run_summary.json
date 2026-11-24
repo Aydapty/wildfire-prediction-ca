@@ -1,0 +1,17 @@
+{
+    "run_name": "resnet50_iteration0_run1_seeded",
+    "status": "terminated_due_to_numerical_instability",
+    "completed_epochs": 13,
+    "failed_epoch": 14,
+    "best_epoch": 11,
+    "best_adjusted_pr_auc": 0.21983338411921682,
+    "invalid_parameter_tensors": 0,
+    "invalid_buffer_tensors": 0,
+    "fp32_invalid_inputs": 0,
+    "fp32_invalid_logits": 0,
+    "fp32_invalid_probabilities": 0,
+    "fp32_diagnostic_roc_auc": 0.9981561155206211,
+    "fp32_diagnostic_pr_auc": 0.6252178549449605,
+    "fp32_diagnostic_adjusted_pr_auc": 0.07970513800140544,
+    "conclusion": "FP16 validation produced non-finite predictions during epoch 14. FP32 validation of the same model succeeded. Mixed-precision numerical instability is suspected."
+}
